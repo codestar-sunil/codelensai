@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"codelensai/internal/config"
@@ -133,11 +134,25 @@ Diff:
 
 	text := result.Content[0].Text
 
+	// Strip markdown code fences if present
+	text = strings.TrimSpace(text)
+	if strings.HasPrefix(text, "```") {
+		// Remove opening fence (e.g. ```json)
+		if idx := strings.Index(text, "\n"); idx != -1 {
+			text = text[idx+1:]
+		}
+		// Remove closing fence
+		if idx := strings.LastIndex(text, "```"); idx != -1 {
+			text = text[:idx]
+		}
+		text = strings.TrimSpace(text)
+	}
+
 	var review ReviewResult
 	if err := json.Unmarshal([]byte(text), &review); err != nil {
 		// Fallback: if Claude didn't return valid JSON, use raw text as summary
 		return &ReviewResult{
-			Summary:  text,
+			Summary:  result.Content[0].Text,
 			Comments: nil,
 		}, nil
 	}
