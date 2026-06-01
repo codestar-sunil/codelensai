@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -134,28 +135,29 @@ Diff:
 
 	text := result.Content[0].Text
 
-	// Strip markdown code fences if present
-	text = strings.TrimSpace(text)
-	if strings.HasPrefix(text, "```") {
-		// Remove opening fence (e.g. ```json)
-		if idx := strings.Index(text, "\n"); idx != -1 {
-			text = text[idx+1:]
-		}
-		// Remove closing fence
-		if idx := strings.LastIndex(text, "```"); idx != -1 {
-			text = text[:idx]
-		}
-		text = strings.TrimSpace(text)
-	}
+	// Extract JSON from response - find the outermost { }
+	jsonStr := extractJSON(text)
 
 	var review ReviewResult
-	if err := json.Unmarshal([]byte(text), &review); err != nil {
-		// Fallback: if Claude didn't return valid JSON, use raw text as summary
+	if err := json.Unmarshal([]byte(jsonStr), &review); err != nil {
+		log.Printf("Failed to parse review JSON: %v", err)
+		log.Printf("Raw response: %.500s", text)
+		// Fallback: post raw text as summary
 		return &ReviewResult{
-			Summary:  result.Content[0].Text,
+			Summary:  text,
 			Comments: nil,
 		}, nil
 	}
 
 	return &review, nil
+}
+
+func extractJSON(text string) string {
+	// Find first { and last }
+	start := strings.Index(text, "{")
+	end := strings.LastIndex(text, "}")
+	if start != -1 && end != -1 && end > start {
+		return text[start : end+1]
+	}
+	return text
 }
