@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -28,7 +29,7 @@ func Load() *Config {
 	return &Config{
 		Port:                port,
 		GitHubAppID:         os.Getenv("GITHUB_APP_ID"),
-		GitHubPrivateKey:    os.Getenv("GITHUB_PRIVATE_KEY"),
+		GitHubPrivateKey:    strings.ReplaceAll(os.Getenv("GITHUB_PRIVATE_KEY"), "\\n", "\n"),
 		GitHubWebhookSecret: os.Getenv("GITHUB_WEBHOOK_SECRET"),
 		ClaudeAPIKey:        os.Getenv("CLAUDE_API_KEY"),
 	}
