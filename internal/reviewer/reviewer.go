@@ -82,9 +82,11 @@ Rules for the JSON response:
 - "path" must be the file path exactly as shown in the diff header (after b/)
 - "line" must be a line number from the NEW side of the diff (lines starting with + in the diff, using the line number shown after the @@ hunk header)
 - "body" should be clear, specific, and actionable markdown
-- "summary" should include an overall assessment and mention what was done well
+- "summary" should be a brief overall assessment (3-5 sentences max) mentioning key concerns and what was done well
+- Put detailed feedback in the "comments" array, NOT in the summary
 - If there are no inline issues, return an empty "comments" array
 - Only comment on lines that exist in the new side of the diff
+- Prioritize the most important issues (max 10 comments)
 
 PR Title: %s
 
@@ -93,7 +95,7 @@ Diff:
 
 	reqBody := claudeRequest{
 		Model:     "claude-sonnet-4-6",
-		MaxTokens: 2000,
+		MaxTokens: 4096,
 		Messages: []claudeMessage{
 			{Role: "user", Content: prompt},
 		},
@@ -141,7 +143,7 @@ Diff:
 	var review ReviewResult
 	if err := json.Unmarshal([]byte(jsonStr), &review); err != nil {
 		log.Printf("Failed to parse review JSON: %v", err)
-		log.Printf("Raw response: %.500s", text)
+		log.Printf("Extracted JSON: %.500s", jsonStr)
 		// Fallback: post raw text as summary
 		return &ReviewResult{
 			Summary:  text,
@@ -149,6 +151,7 @@ Diff:
 		}, nil
 	}
 
+	log.Printf("Parsed review: %d comments, summary length: %d", len(review.Comments), len(review.Summary))
 	return &review, nil
 }
 
